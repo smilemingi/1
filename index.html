@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K-Master Alpha — Phase 1: Roots & Shapes (15-Step Interactive Engine)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              purple: '#6E44FF',
+              purpleLight: '#F3EFFF',
+              gold: '#D4AF37',
+              goldLight: '#FCF9EE',
+              green: '#10B981',
+              greenLight: '#ECFDF5',
+              ink: '#111827',
+              sub: '#6B7280'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+            hangul: ['Noto Sans KR', 'sans-serif']
+          },
+          boxShadow: {
+            'glass': '0 20px 40px -15px rgba(110, 68, 255, 0.08), 0 0 1px 1px rgba(17, 24, 39, 0.05)',
+            'block': '0 10px 25px -5px rgba(110, 68, 255, 0.25)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #FFFFFF;
+      color: #111827;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Smooth Magnetic Snap & Morphing Animations */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(110, 68, 255, 0.35); }
+      50% { box-shadow: 0 0 0 14px rgba(110, 68, 255, 0); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.75); opacity: 0; }
+      70% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes floatTile {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+
+    .animate-pulse-glow {
+      animation: pulseGlow 2s infinite;
+    }
+
+    .animate-pop {
+      animation: popIn 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .tile-hover:hover {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 14px 28px -8px rgba(110, 68, 255, 0.28);
+    }
+
+    .drop-zone-active {
+      border-color: #6E44FF !important;
+      background-color: #F3EFFF !important;
+      transform: scale(1.04);
+    }
+
+    .drop-zone-success {
+      border-color: #10B981 !important;
+      background-color: #ECFDF5 !important;
+      box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.15);
+    }
+
+    /* Custom Scrollbar for Step Selector */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between bg-white">
+
+  <!-- TOP HUD (10%) -->
+  <header class="w-full border-b border-gray-100 bg-white/90 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-brand-purple flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          한
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm tracking-tight text-brand-ink">K-Master Alpha</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-purpleLight text-brand-purple">Phase 1</span>
+          </div>
+          <p class="text-xs text-brand-sub" id="hud-subtitle">Roots & Shapes · Articulation Anatomy</p>
+        </div>
+      </div>
+
+      <!-- Progress Bar & Step Counter -->
+      <div class="flex-1 max-w-md mx-4 hidden sm:block">
+        <div class="flex justify-between text-xs font-medium mb-1.5">
+          <span class="text-brand-sub">Curriculum Progress</span>
+          <span class="text-brand-purple font-bold" id="step-counter">Step 1 / 15</span>
+        </div>
+        <div class="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-brand-purple transition-all duration-500 ease-out rounded-full" style="width: 6.66%"></div>
+        </div>
+      </div>
+
+      <!-- Sound & Step Map Controls -->
+      <div class="flex items-center gap-2">
+        <button id="btn-audio-replay" onclick="playCurrentPhoneme()" title="Listen to Pronunciation"
+          class="p-2.5 rounded-xl border border-gray-200 hover:border-brand-purple hover:text-brand-purple transition-colors flex items-center gap-1.5 text-xs font-semibold">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+          </svg>
+          <span class="hidden md:inline">Sound</span>
+        </button>
+
+        <button onclick="toggleStepDrawer()" class="px-3 py-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-xs font-semibold text-brand-ink border border-gray-200 transition">
+          15 Steps ▾
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsible 15-Step Quick Navigator -->
+    <div id="step-drawer" class="hidden border-t border-gray-100 bg-gray-50/80 px-6 py-3">
+      <div class="max-w-5xl mx-auto flex gap-2 overflow-x-auto no-scrollbar py-1" id="step-pills">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN INTERACTIVE WORKSPACE (65%) -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-6 py-8 flex flex-col justify-center">
+    
+    <!-- Mission Directive Banner -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-goldLight border border-brand-gold/30 text-brand-gold text-xs font-bold mb-2" id="category-badge">
+        PART 1 · BASIC CONSONANTS (조음 기관의 본뜸)
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-brand-ink" id="mission-title">
+        The Tongue Root Blocking the Throat
+      </h1>
+      <p class="text-sm sm:text-base text-brand-sub mt-1 max-w-xl mx-auto" id="mission-desc">
+        Look at how the back of your tongue rises to touch the soft palate. Snap the matching Hangul block into the vocal blueprint.
+      </p>
+    </div>
+
+    <!-- 2-Column Glassmorphic Interactive Board -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+      
+      <!-- LEFT CARD: Anatomical / Cosmic Blueprint Visualizer -->
+      <div class="rounded-3xl bg-[#F8F9FA] border border-gray-200/80 p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-sub" id="visual-label">Vocal Organ Blueprint</span>
+          <span class="text-xs font-semibold text-brand-purple bg-white px-2.5 py-1 rounded-lg border border-gray-200" id="phonetic-tag">[g / k] · Velar</span>
+        </div>
+
+        <!-- Dynamic SVG Canvas -->
+        <div class="my-6 flex items-center justify-center h-52" id="svg-container">
+          <!-- Injected dynamically per step -->
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <p class="text-xs font-semibold text-brand-ink mb-0.5" id="insight-title">Scientific Origin</p>
+          <p class="text-xs text-brand-sub leading-relaxed" id="insight-text">
+            King Sejong designed ㄱ by tracing the exact right-angle silhouette of the tongue root blocking the airway.
+          </p>
+        </div>
+      </div>
+
+      <!-- RIGHT CARD: Magnetic Jamo Assembly Canvas -->
+      <div class="rounded-3xl bg-white border border-gray-200 shadow-glass p-6 sm:p-8 flex flex-col justify-between relative">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-brand-sub">Magnetic Assembly Zone</span>
+          <span class="text-xs font-medium text-brand-sub" id="assembly-hint">Drag or tap a block below</span>
+        </div>
+
+        <!-- Interactive Drop / Snap Target -->
+        <div class="my-6 flex flex-col items-center justify-center h-52">
+          <div id="drop-zone"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleDrop(event)"
+               class="w-44 h-44 rounded-3xl border-2 border-dashed border-brand-purple/40 bg-brand-purpleLight/30 flex flex-col items-center justify-center transition-all duration-300 relative">
+            
+            <!-- Ghost Guide Silhouette -->
+            <span id="ghost-char" class="font-hangul text-7xl font-black text-brand-purple/15 select-none pointer-events-none transition-all duration-300">
+              ㄱ
+            </span>
+            <span id="drop-label" class="text-[11px] font-semibold text-brand-purple/60 mt-2">
+              Snap Block Here
+            </span>
+
+            <!-- Result Overlay (Shown on Success) -->
+            <div id="success-badge" class="hidden absolute -top-3 -right-3 bg-brand-green text-white text-xs font-bold px-3 py-1 rounded-full shadow-md flex items-center gap-1 animate-pop">
+              ✓ Matched
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback & Next Step Action Bar -->
+        <div class="min-h-[64px] flex items-center justify-between gap-3 bg-gray-50 rounded-2xl p-3.5 border border-gray-100">
+          <div id="feedback-message" class="text-xs text-brand-sub font-medium">
+            Select the exact Jamo module that mirrors the highlighted organ shape.
+          </div>
+          <button id="btn-next" onclick="nextStep()" disabled
+            class="px-5 py-2.5 rounded-xl bg-gray-200 text-gray-400 text-xs font-bold transition-all duration-200 whitespace-nowrap cursor-not-allowed">
+            Next Step →
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM MODULE DOCK (25%) -->
+  <footer class="w-full border-t border-gray-100 bg-[#F8F9FA] py-6 px-6">
+    <div class="max-w-3xl mx-auto">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-bold uppercase tracking-wider text-brand-sub">Modular Jamo Dock (Drag or Click to Snap)</span>
+        <span class="text-xs text-brand-purple font-semibold" id="dock-instruction">Choose 1 Block</span>
+      </div>
+      
+      <!-- Draggable / Clickable Jamo Tiles -->
+      <div id="jamo-dock" class="grid grid-cols-3 sm:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Injected dynamically per step -->
+      </div>
+    </div>
+  </footer>
+
+  <!-- COMPLETION MODAL (After Step 15) -->
+  <div id="completion-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl border border-gray-100 animate-pop">
+      <div class="w-16 h-16 rounded-2xl bg-brand-goldLight border border-brand-gold/40 text-brand-gold flex items-center justify-center mx-auto mb-4 text-3xl">
+        🏆
+      </div>
+      <span class="text-xs font-bold uppercase tracking-widest text-brand-purple">Phase 1 Mastered</span>
+      <h2 class="text-2xl font-bold text-brand-ink mt-1">Roots & Shapes Unlocked!</h2>
+      <p class="text-sm text-brand-sub mt-2 leading-relaxed">
+        You have decoded the anatomical logic of Korean consonants and the cosmic philosophy of vowels without memorizing a single chart.
+      </p>
+      <div class="mt-6 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-left space-y-2 text-xs">
+        <div class="flex justify-between">
+          <span class="text-brand-sub">5 Core Articulators</span>
+          <span class="font-bold text-brand-green">ㄱ, ㄴ, ㅁ, ㅅ, ㅇ ✓</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-brand-sub">Aspiration Stroke Logic</span>
+          <span class="font-bold text-brand-green">ㅋ, ㄷ, ㅌ, ㅂ, ㅍ, ㅈ, ㅊ, ㅎ ✓</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-brand-sub">Cosmic Vowel Foundations</span>
+          <span class="font-bold text-brand-green">ㆍ, ㅡ, ㅣ → ㅏ, ㅓ, ㅗ, ㅜ ✓</span>
+        </div>
+      </div>
+      <button onclick="restartCurriculum()" class="mt-6 w-full py-3.5 rounded-xl bg-brand-purple text-white font-bold text-sm hover:opacity-95 transition shadow-block">
+        Restart Phase 1 Review
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. WEB AUDIO API SYNTHESIZER (Tactile Magnetic Snap & Chime Feedback)
+    // =========================================================================
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playSnapSound(isSuccess = true) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+      if (isSuccess) {
+        // Crisp magnetic lock + warm harmonic chime
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else {
+        // Gentle low thud for mismatch
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      }
+    }
+
+    function speakKorean(text) {
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ko-KR';
+      utter.rate = 0.85;
+      window.speechSynthesis.speak(utter);
+    }
+
+    // =========================================================================
+    // 2. 15-STEP PHASE 1 CURRICULUM DATA (Anatomical & Morphological Logic)
+    // =========================================================================
+    const curriculumSteps = [
+      // --- PART 1: 5 BASIC CONSONANTS (Vocal Organ Shapes) ---
+      {
+        step: 1,
+        part: "PART 1 · 5 CORE ARTICULATORS",
+        title: "Velar Root: Tongue Blocking the Throat",
+        desc: "Notice how the back of the tongue bends at a sharp angle to touch the soft palate. Snap the matching block.",
+        visualLabel: "Sagittal Vocal Tract (Side View)",
+        phonetic: "[g / k] · Giyeok",
+        speechText: "그",
+        target: "ㄱ",
+        options: ["ㄱ", "ㄴ", "ㅁ", "ㅅ"],
+        insightTitle: "Molar / Velar Origin (어금닛소리)",
+        insightText: "ㄱ depicts the exact outline of the tongue root rising to block the throat airway.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M40,40 Q130,30 150,90 L150,150" fill="none" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+            <path d="M55,85 L125,85 L125,145" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="125" cy="85" r="7" fill="#D4AF37"/>
+            <text x="45" y="165" font-size="11" fill="#6B7280" font-weight="600">Tongue Root → Soft Palate</text>
+          </svg>`
+      },
+      {
+        step: 2,
+        part: "PART 1 · 5 CORE ARTICULATORS",
+        title: "Alveolar Tip: Tongue Touching Upper Gum",
+        desc: "Flip the angle! The tip of your tongue rises upward to touch the ridge behind your upper front teeth.",
+        visualLabel: "Tongue Tip Elevation",
+        phonetic: "[n] · Nieun",
+        speechText: "느",
+        target: "ㄴ",
+        options: ["ㄱ", "ㄴ", "ㅇ", "ㅅ"],
+        insightTitle: "Lingual Origin (혓소리)",
+        insightText: "ㄴ mirrors the L-shaped curve of the tongue tip pressing against the upper alveolar ridge.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M50,45 L145,45" fill="none" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+            <path d="M75,65 L75,130 L145,130" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="75" cy="65" r="7" fill="#D4AF37"/>
+            <text x="52" y="165" font-size="11" fill="#6B7280" font-weight="600">Tongue Tip → Upper Gum</text>
+          </svg>`
+      },
+      {
+        step: 3,
+        part: "PART 1 · 5 CORE ARTICULATORS",
+        title: "Bilabial Seal: Closed Lips Frame",
+        desc: "Press your upper and lower lips together firmly. The closed square outline represents the mouth.",
+        visualLabel: "Front Lip Closure",
+        phonetic: "[m] · Mieum",
+        speechText: "므",
+        target: "ㅁ",
+        options: ["ㅁ", "ㅇ", "ㄱ", "ㄴ"],
+        insightTitle: "Labial Origin (입술소리)",
+        insightText: "ㅁ is a direct geometric abstraction of closed lips forming a sealed square chamber.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <rect x="65" y="50" width="90" height="80" rx="8" fill="none" stroke="#6E44FF" stroke-width="12"/>
+            <line x1="55" y1="90" x2="165" y2="90" stroke="#D4AF37" stroke-width="3" stroke-dasharray="5,5"/>
+            <text x="64" y="165" font-size="11" fill="#6B7280" font-weight="600">Closed Mouth Contour</text>
+          </svg>`
+      },
+      {
+        step: 4,
+        part: "PART 1 · 5 CORE ARTICULATORS",
+        title: "Dental Peak: Sharp Tooth & Air Hiss",
+        desc: "Air passes cleanly between your front teeth. Notice the sharp triangular peak of a tooth.",
+        visualLabel: "Incisor Tooth Silhouette",
+        phonetic: "[s] · Siot",
+        speechText: "스",
+        target: "ㅅ",
+        options: ["ㅅ", "ㅈ", "ㄴ", "ㄱ"],
+        insightTitle: "Dental Origin (잇소리)",
+        insightText: "ㅅ captures the pointed profile of a sharp incisor tooth guiding airflow.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M110,48 L65,130 M110,48 L155,130" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="110" cy="48" r="7" fill="#D4AF37"/>
+            <text x="68" y="165" font-size="11" fill="#6B7280" font-weight="600">Sharp Tooth Ridge</text>
+          </svg>`
+      },
+      {
+        step: 5,
+        part: "PART 1 · 5 CORE ARTICULATORS",
+        title: "Glottal Open Throat: Circular Airway",
+        desc: "Open your throat completely with zero tongue or lip obstruction. A pure open circle.",
+        visualLabel: "Open Throat Cross-Section",
+        phonetic: "[silent / ng] · Ieung",
+        speechText: "으",
+        target: "ㅇ",
+        options: ["ㅁ", "ㅇ", "ㅎ", "ㄴ"],
+        insightTitle: "Glottal Origin (목구멍소리)",
+        insightText: "ㅇ mirrors the circular opening of the human throat allowing unobstructed resonance.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <circle cx="110" cy="90" r="44" fill="none" stroke="#6E44FF" stroke-width="12"/>
+            <circle cx="110" cy="90" r="18" fill="none" stroke="#D4AF37" stroke-width="3" stroke-dasharray="4,4"/>
+            <text x="64" y="165" font-size="11" fill="#6B7280" font-weight="600">Unobstructed Throat</text>
+          </svg>`
+      },
+
+      // --- PART 2: STROKE ADDITION LOGIC (Aspiration & Air Burst) ---
+      {
+        step: 6,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Adding Air Burst to ㄱ → Strong [kʰ]",
+        desc: "In Hangul, adding a horizontal stroke means adding a strong burst of air! Upgrade ㄱ with one air stroke.",
+        visualLabel: "ㄱ + 1 Aspiration Stroke",
+        phonetic: "[kʰ] · Kieuk (Aspirated)",
+        speechText: "크",
+        target: "ㅋ",
+        options: ["ㄱ", "ㅋ", "ㄷ", "ㅌ"],
+        insightTitle: "Feature-Based Design System",
+        insightText: "Instead of inventing a random symbol, Hangul adds 1 stroke to ㄱ to show stronger airflow.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M65,55 L145,55 L145,135" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="65" y1="95" x2="140" y2="95" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="56" y="165" font-size="11" fill="#D4AF37" font-weight="700">+ Gold Stroke = Strong Air</text>
+          </svg>`
+      },
+      {
+        step: 7,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Pressing Harder on ㄴ → Crisp [d / t]",
+        desc: "Add a top roof stroke to ㄴ to create a firmer tongue contact against the upper gum.",
+        visualLabel: "ㄴ + 1 Top Closure Stroke",
+        phonetic: "[d / t] · Digeut",
+        speechText: "드",
+        target: "ㄷ",
+        options: ["ㄴ", "ㄷ", "ㅌ", "ㄹ"],
+        insightTitle: "Logical Sound Evolution",
+        insightText: "ㄴ (soft tongue tip) + top stroke = ㄷ (firm tongue stop).",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M75,55 L75,130 L145,130" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="75" y1="55" x2="145" y2="55" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="64" y="165" font-size="11" fill="#D4AF37" font-weight="700">ㄴ + Top Bar = ㄷ</text>
+          </svg>`
+      },
+      {
+        step: 8,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Maximum Air on ㄷ → Explosive [tʰ]",
+        desc: "Add one more middle air-burst stroke inside ㄷ to release a sharp puff of breath.",
+        visualLabel: "ㄷ + 1 Aspiration Stroke",
+        phonetic: "[tʰ] · Tieut (Aspirated)",
+        speechText: "트",
+        target: "ㅌ",
+        options: ["ㄷ", "ㅌ", "ㅍ", "ㅋ"],
+        insightTitle: "Consistent Visual Grammar",
+        insightText: "Look at the progression: ㄴ → ㄷ → ㅌ. Each horizontal line increases acoustic intensity.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M145,52 L75,52 L75,132 L145,132" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="75" y1="92" x2="140" y2="92" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="62" y="165" font-size="11" fill="#D4AF37" font-weight="700">ㄷ + Air Bar = ㅌ</text>
+          </svg>`
+      },
+      {
+        step: 9,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Lip Popping Release: ㅁ → [b / p]",
+        desc: "Extend the two vertical walls of the mouth square ㅁ upward as the lips pop open.",
+        visualLabel: "ㅁ + Upward Lip Release",
+        phonetic: "[b / p] · Bieup",
+        speechText: "브",
+        target: "ㅂ",
+        options: ["ㅁ", "ㅂ", "ㅍ", "ㅇ"],
+        insightTitle: "Bilabial Plosive",
+        insightText: "ㅂ keeps the square mouth core of ㅁ while extending upward to represent bursting air.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M75,85 L75,132 L145,132 L145,85 M75,92 L145,92" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="75" y1="48" x2="75" y2="85" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <line x1="145" y1="48" x2="145" y2="85" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="60" y="165" font-size="11" fill="#D4AF37" font-weight="700">Lip Burst Extensions</text>
+          </svg>`
+      },
+      {
+        step: 10,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Heavy Air Lip Pop: ㅂ → [pʰ]",
+        desc: "Rotate and cap the lip burst into a heavy aspirated frame with strong breath pressure.",
+        visualLabel: "Aspirated Bilabial Frame",
+        phonetic: "[pʰ] · Pieup (Aspirated)",
+        speechText: "프",
+        target: "ㅍ",
+        options: ["ㅂ", "ㅍ", "ㅌ", "ㅁ"],
+        insightTitle: "Symmetric Aspiration",
+        insightText: "ㅍ completes the labial family: ㅁ (nasal) → ㅂ (plosive) → ㅍ (aspirated).",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <line x1="65" y1="55" x2="155" y2="55" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <line x1="65" y1="130" x2="155" y2="130" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <line x1="90" y1="55" x2="90" y2="130" stroke="#6E44FF" stroke-width="12" stroke-linecap="round"/>
+            <line x1="130" y1="55" x2="130" y2="130" stroke="#6E44FF" stroke-width="12" stroke-linecap="round"/>
+            <text x="58" y="165" font-size="11" fill="#D4AF37" font-weight="700">Strong Breath Pressure</text>
+          </svg>`
+      },
+      {
+        step: 11,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Dental Friction + Palate Roof: ㅅ → ㅈ → ㅊ",
+        desc: "Add a roof above ㅅ to get ㅈ [j/ch], then add an aspiration crown on top for strong ㅊ [chʰ].",
+        visualLabel: "ㅅ + Roof + Air Crown",
+        phonetic: "[chʰ] · Chieut",
+        speechText: "츠",
+        target: "ㅊ",
+        options: ["ㅅ", "ㅈ", "ㅊ", "ㅎ"],
+        insightTitle: "3-Tier Dental Progression",
+        insightText: "ㅅ (hiss) → ㅈ (tongue touches roof) → ㅊ (strong burst of air through teeth).",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <path d="M70,75 L150,75 M110,75 L70,135 M110,75 L150,135" fill="none" stroke="#6E44FF" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="95" y1="45" x2="125" y2="45" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="64" y="165" font-size="11" fill="#D4AF37" font-weight="700">Top Crown = Strong [chʰ]</text>
+          </svg>`
+      },
+      {
+        step: 12,
+        part: "PART 2 · STROKE ADDITION (획 추가 원리)",
+        title: "Glottal Breath Release: ㅇ → ㅎ [h]",
+        desc: "Take the open throat circle ㅇ and add two air-release bars on top to exhale warm breath.",
+        visualLabel: "Open Throat ㅇ + Breath Bars",
+        phonetic: "[h] · Hieut",
+        speechText: "흐",
+        target: "ㅎ",
+        options: ["ㅇ", "ㅎ", "ㅊ", "ㅁ"],
+        insightTitle: "Warm Exhalation",
+        insightText: "ㅎ literally visualizes breath rising out of the open circular throat ㅇ.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <circle cx="110" cy="112" r="28" fill="none" stroke="#6E44FF" stroke-width="11"/>
+            <line x1="68" y1="70" x2="152" y2="70" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <line x1="96" y1="44" x2="124" y2="44" stroke="#D4AF37" stroke-width="11" stroke-linecap="round"/>
+            <text x="62" y="165" font-size="11" fill="#D4AF37" font-weight="700">Throat ㅇ + Exhaled Air</text>
+          </svg>`
+      },
+
+      // --- PART 3: COSMIC VOWELS (Heaven · Earth · Human) ---
+      {
+        step: 13,
+        part: "PART 3 · COSMIC VOWEL ARCHITECTURE",
+        title: "Earth (ㅡ) & Human (ㅣ) Foundations",
+        desc: "Hangul vowels are built from 3 elements: Heaven (ㆍ), Flat Earth (ㅡ), and Standing Human (ㅣ). Snap the Flat Earth vowel.",
+        visualLabel: "Horizontal Horizon Line",
+        phonetic: "[eu] · Flat Tongue Vowel",
+        speechText: "으",
+        target: "ㅡ",
+        options: ["ㅡ", "ㅣ", "ㅏ", "ㅗ"],
+        insightTitle: "Cheon-Ji-In Philosophy (천지인)",
+        insightText: "ㅡ mirrors both the flat horizon of the Earth and a flat, relaxed tongue posture.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <line x1="45" y1="90" x2="175" y2="90" stroke="#6E44FF" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="110" cy="55" r="6" fill="#D4AF37" opacity="0.5"/>
+            <text x="60" y="140" font-size="11" fill="#6B7280" font-weight="600">Flat Earth · Relaxed Tongue</text>
+          </svg>`
+      },
+      {
+        step: 14,
+        part: "PART 3 · COSMIC VOWEL ARCHITECTURE",
+        title: "Bright Sun Outside Human: ㅣ + ㆍ → ㅏ [a]",
+        desc: "Place the bright Heaven dot (ㆍ) to the RIGHT (outside) of Standing Human (ㅣ) to create a bright, open [a] sound.",
+        visualLabel: "Human (ㅣ) + East Sun (ㆍ)",
+        phonetic: "[a] · Bright Outward Vowel",
+        speechText: "아",
+        target: "ㅏ",
+        options: ["ㅏ", "ㅓ", "ㅗ", "ㅜ"],
+        insightTitle: "Yin-Yang Acoustic Harmony",
+        insightText: "Right/Up = Bright (Yang) vowels like ㅏ, ㅗ. Left/Down = Deep (Yin) vowels like ㅓ, ㅜ.",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <line x1="95" y1="42" x2="95" y2="138" stroke="#6E44FF" stroke-width="14" stroke-linecap="round"/>
+            <line x1="95" y1="90" x2="138" y2="90" stroke="#D4AF37" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="145" cy="90" r="8" fill="#D4AF37"/>
+            <text x="58" y="165" font-size="11" fill="#D4AF37" font-weight="700">Sun East of Human = ㅏ [a]</text>
+          </svg>`
+      },
+      {
+        step: 15,
+        part: "PART 3 · COSMIC VOWEL ARCHITECTURE",
+        title: "Sun Rising Above Earth: ㆍ + ㅡ → ㅗ [o]",
+        desc: "Place the Heaven energy (ㆍ) ABOVE the Flat Earth horizon (ㅡ) to form a rounded, bright [o] vowel.",
+        visualLabel: "North Sun (ㆍ) + Earth (ㅡ)",
+        phonetic: "[o] · Rounded Bright Vowel",
+        speechText: "오",
+        target: "ㅗ",
+        options: ["ㅗ", "ㅜ", "ㅏ", "ㅡ"],
+        insightTitle: "Complete Geometric Logic",
+        insightText: "You now understand how every consonant and vowel in Hangul is engineered from physical & cosmic shapes!",
+        svg: `
+          <svg viewBox="0 0 220 180" class="w-48 h-48">
+            <line x1="55" y1="112" x2="165" y2="112" stroke="#6E44FF" stroke-width="14" stroke-linecap="round"/>
+            <line x1="110" y1="68" x2="110" y2="112" stroke="#D4AF37" stroke-width="14" stroke-linecap="round"/>
+            <circle cx="110" cy="60" r="8" fill="#D4AF37"/>
+            <text x="56" y="155" font-size="11" fill="#D4AF37" font-weight="700">Sun Above Earth = ㅗ [o]</text>
+          </svg>`
+      }
+    ];
+
+    // =========================================================================
+    // 3. STATE MANAGEMENT & INTERACTION ENGINE
+    // =========================================================================
+    let currentIndex = 0;
+    let completedSteps = new Set();
+    let draggedChar = null;
+
+    function initApp() {
+      renderStepPills();
+      loadStep(0);
+    }
+
+    function renderStepPills() {
+      const container = document.getElementById('step-pills');
+      container.innerHTML = curriculumSteps.map((s, idx) => {
+        const isDone = completedSteps.has(idx);
+        const isCurrent = idx === currentIndex;
+        let style = "bg-white text-gray-500 border-gray-200";
+        if (isCurrent) style = "bg-brand-purple text-white border-brand-purple shadow-sm";
+        else if (isDone) style = "bg-brand-greenLight text-brand-green border-brand-green/30";
+
+        return `
+          <button onclick="loadStep(${idx})" class="px-3 py-1.5 rounded-lg border text-xs font-bold whitespace-nowrap transition ${style}">
+            ${idx + 1}. ${s.target} ${isDone ? '✓' : ''}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleStepDrawer() {
+      const drawer = document.getElementById('step-drawer');
+      drawer.classList.toggle('hidden');
+    }
+
+    function loadStep(index) {
+      currentIndex = index;
+      const data = curriculumSteps[index];
+      const isAlreadyDone = completedSteps.has(index);
+
+      // Update HUD
+      document.getElementById('step-counter').textContent = `Step ${data.step} / ${curriculumSteps.length}`;
+      document.getElementById('progress-bar').style.width = `${((index + 1) / curriculumSteps.length) * 100}%`;
+      document.getElementById('category-badge').textContent = data.part;
+      document.getElementById('mission-title').textContent = data.title;
+      document.getElementById('mission-desc').textContent = data.desc;
+
+      // Update Left Blueprint Card
+      document.getElementById('visual-label').textContent = data.visualLabel;
+      document.getElementById('phonetic-tag').textContent = data.phonetic;
+      document.getElementById('svg-container').innerHTML = data.svg;
+      document.getElementById('insight-title').textContent = data.insightTitle;
+      document.getElementById('insight-text').textContent = data.insightText;
+
+      // Reset Drop Zone
+      const dropZone = document.getElementById('drop-zone');
+      const ghostChar = document.getElementById('ghost-char');
+      const dropLabel = document.getElementById('drop-label');
+      const successBadge = document.getElementById('success-badge');
+      const btnNext = document.getElementById('btn-next');
+      const feedbackMsg = document.getElementById('feedback-message');
+
+      dropZone.classList.remove('drop-zone-success', 'drop-zone-active');
+      ghostChar.textContent = data.target;
+
+      if (isAlreadyDone) {
+        dropZone.classList.add('drop-zone-success');
+        ghostChar.className = "font-hangul text-8xl font-black text-brand-green select-none pointer-events-none transition-all duration-300";
+        dropLabel.textContent = data.phonetic;
+        successBadge.classList.remove('hidden');
+        feedbackMsg.innerHTML = `<span class="text-brand-green font-bold">Unlocked!</span> Ready for the next module.`;
+        enableNextButton();
+      } else {
+        ghostChar.className = "font-hangul text-7xl font-black text-brand-purple/15 select-none pointer-events-none transition-all duration-300";
+        dropLabel.textContent = "Snap Block Here";
+        successBadge.classList.add('hidden');
+        feedbackMsg.textContent = "Drag or tap the matching Jamo block from the dock below.";
+        disableNextButton();
+      }
+
+      // Render Jamo Dock Tiles
+      const dock = document.getElementById('jamo-dock');
+      dock.innerHTML = data.options.map(char => `
+        <div draggable="true"
+             ondragstart="handleDragStart(event, '${char}')"
+             onclick="evaluateChoice('${char}')"
+             class="tile-hover cursor-pointer bg-white rounded-2xl border-2 border-gray-200/90 hover:border-brand-purple py-5 flex flex-col items-center justify-center transition-all duration-200 shadow-sm active:scale-95">
+          <span class="font-hangul text-4xl font-black text-brand-ink">${char}</span>
+          <span class="text-[10px] font-semibold text-brand-sub mt-1 uppercase tracking-wider">Module</span>
+        </div>
+      `).join('');
+
+      renderStepPills();
+    }
+
+    // Drag & Drop Handlers
+    function handleDragStart(e, char) {
+      draggedChar = char;
+      e.dataTransfer.setData('text/plain', char);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.add('drop-zone-active');
+    }
+
+    function handleDragLeave(e) {
+      document.getElementById('drop-zone').classList.remove('drop-zone-active');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      document.getElementById('drop-zone').classList.remove('drop-zone-active');
+      const char = e.dataTransfer.getData('text/plain') || draggedChar;
+      if (char) evaluateChoice(char);
+    }
+
+    // Core Validation & Magnetic Snap Feedback
+    function evaluateChoice(selectedChar) {
+      const data = curriculumSteps[currentIndex];
+      const dropZone = document.getElementById('drop-zone');
+      const ghostChar = document.getElementById('ghost-char');
+      const dropLabel = document.getElementById('drop-label');
+      const successBadge = document.getElementById('success-badge');
+      const feedbackMsg = document.getElementById('feedback-message');
+
+      if (selectedChar === data.target) {
+        // Magnetic Snap Success!
+        playSnapSound(true);
+        speakKorean(data.speechText);
+        completedSteps.add(currentIndex);
+
+        dropZone.classList.add('drop-zone-success');
+        ghostChar.textContent = data.target;
+        ghostChar.className = "font-hangul text-8xl font-black text-brand-green animate-pop select-none pointer-events-none";
+        dropLabel.textContent = data.phonetic;
+        dropLabel.className = "text-xs font-bold text-brand-green mt-2";
+        successBadge.classList.remove('hidden');
+
+        feedbackMsg.innerHTML = `<span class="text-brand-green font-bold">Perfect Magnetic Lock!</span> "${data.target}" matches the ${data.visualLabel.toLowerCase()}.`;
+        enableNextButton();
+        renderStepPills();
+      } else {
+        // Gentle Mismatch Feedback
+        playSnapSound(false);
+        dropZone.classList.add('border-red-400', 'bg-red-50/40');
+        feedbackMsg.innerHTML = `<span class="text-red-500 font-bold">Shape Mismatch:</span> Compare the strokes of "${selectedChar}" with the highlighted blueprint.`;
+        setTimeout(() => {
+          dropZone.classList.remove('border-red-400', 'bg-red-50/40');
+        }, 600);
+      }
+    }
+
+    function enableNextButton() {
+      const btn = document.getElementById('btn-next');
+      btn.disabled = false;
+      btn.className = "px-5 py-2.5 rounded-xl bg-brand-purple text-white text-xs font-bold hover:opacity-95 transition-all duration-200 whitespace-nowrap cursor-pointer shadow-block";
+      btn.textContent = currentIndex === curriculumSteps.length - 1 ? "Complete Phase 1 🏆" : "Next Step →";
+    }
+
+    function disableNextButton() {
+      const btn = document.getElementById('btn-next');
+      btn.disabled = true;
+      btn.className = "px-5 py-2.5 rounded-xl bg-gray-200 text-gray-400 text-xs font-bold transition-all duration-200 whitespace-nowrap cursor-not-allowed";
+      btn.textContent = "Next Step →";
+    }
+
+    function nextStep() {
+      if (currentIndex < curriculumSteps.length - 1) {
+        loadStep(currentIndex + 1);
+      } else {
+        playSnapSound(true);
+        document.getElementById('completion-modal').classList.remove('hidden');
+      }
+    }
+
+    function playCurrentPhoneme() {
+      const data = curriculumSteps[currentIndex];
+      speakKorean(data.speechText);
+    }
+
+    function restartCurriculum() {
+      completedSteps.clear();
+      document.getElementById('completion-modal').classList.add('hidden');
+      loadStep(0);
+    }
+
+    // Boot Application
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
